@@ -1,0 +1,1382 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ドラゴンスレイヤー - 冒険の始まり</title>
+    <style>
+        /* 基本スタイル */
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background-color: #f0f0f0;
+        }
+        .page {
+            display: none;
+        }
+        .page.active {
+            display: block;
+        }
+        .button-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 5px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        button:hover:not(:disabled) {
+            background-color: #45a049;
+        }
+        #dice-animation {
+            font-size: 2em;
+            text-align: center;
+            margin: 20px 0;
+            display: none;
+        }
+        #status-container {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background-color: #ffffff;
+            border-radius: 5px;
+        }
+        #status-container p {
+            margin: 5px 0;
+        }
+        #battle-log-weapon, #battle-log-dragon {
+            margin-bottom: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #fff;
+            border-radius: 5px;
+        }
+        #version-number {
+            text-align: right;
+            font-size: 0.9em;
+            color: #666;
+        }
+        /* ダイス結果のスタイル */
+        #dice-result-text {
+            font-size: 2em;
+            text-align: center;
+            margin-top: 10px;
+            display: none;
+        }
+        /* エンディングタイトルのスタイル */
+        #ending-title {
+            font-size: 2.5em;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        /* 成功基準の説明スタイル */
+        #success-criteria {
+            font-size: 1.2em;
+            margin-top: 10px;
+            text-align: center;
+            color: #333;
+        }
+        /* 中央配置の画像スタイル */
+        .centered-image {
+            display: block;
+            margin: 20px auto;
+            width: 80%; /* 横長の長方形に合わせて幅を80%に調整 */
+            max-height: 30vh; /* 縦幅をビューポート高さの30%に制限 */
+            height: auto;
+            border-radius: 10px;
+            object-fit: contain; /* 画像が縦横比を保ちながら収まるように */
+        }
+        /* オープニングの説明文スタイル */
+        #opening-description {
+            font-size: 1.2em;
+            margin-top: 20px;
+            text-align: center;
+            color: #333;
+        }
+        /* スタッフロール（クレジット）ページのスタイル */
+        #credits-container {
+            margin-top: 20px;
+            text-align: center;
+            overflow: hidden;
+            position: relative;
+            height: 300px; /* スクロールエリアの高さ */
+        }
+        #credits-content {
+            position: absolute;
+            width: 100%;
+            animation: scrollCredits 20s linear forwards;
+        }
+        #credits-list {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0;
+            font-size: 1.2em;
+        }
+        #credits-list li {
+            margin: 10px 0;
+        }
+        /* スクロールアニメーション */
+        @keyframes scrollCredits {
+            from { transform: translateY(100%); }
+            to { transform: translateY(-100%); }
+        }
+        /* ターンボタンのスタイル */
+        #turn-button, #retreat-button, #weapon-challenge-button {
+            display: none; /* 初期状態は非表示 */
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #008CBA;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        #turn-button:hover:not(:disabled), #retreat-button:hover:not(:disabled), #weapon-challenge-button:hover:not(:disabled) {
+            background-color: #007B9E;
+        }
+        /* リセットボタンのスタイル */
+        #mute-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #555;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        #mute-button:hover:not(:disabled) {
+            background-color: #333;
+        }
+        /* 加護選択ボタンのスタイル */
+        .blessing-button {
+            background-color: #FF9800;
+        }
+        .blessing-button:hover:not(:disabled) {
+            background-color: #E68900;
+        }
+        /* プロceedボタンのスタイル */
+        #proceed-button {
+            background-color: #4CAF50;
+        }
+        #proceed-button:hover:not(:disabled) {
+            background-color: #45a049;
+        }
+        /* 武器進化ボタンのスタイル */
+        .weapon-evolution-button {
+            background-color: #9C27B0;
+        }
+        .weapon-evolution-button:hover:not(:disabled) {
+            background-color: #8E24AA;
+        }
+        /* HPバーのスタイル */
+        .hp-bar-container {
+            width: 100%;
+            background-color: #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .hp-bar {
+            height: 20px;
+            background-color: #4CAF50;
+            width: 100%;
+            transition: width 0.3s;
+            text-align: center;
+            color: white;
+            line-height: 20px;
+            font-size: 0.9em;
+        }
+        .hp-bar.dragon {
+            background-color: #f44336;
+        }
+    </style>
+
+    <script>
+        // ゲーム状態を管理するオブジェクト
+        const gameState = {
+            weaponStage: 1, // 武器の進化段階（リセットしない）
+            blessings: {}, // 取得した加護を記録（タイプごとのカウント、リセットしない）
+            winRateModifier: 0,
+            playerHP: 100,
+            dragonHP: 150,
+            dragonName: 'ドラゴン', // ドラゴンの名前
+            turnCount: 0,
+            playthrough: 1, // プレイ回数（週目）
+            isRetreating: false, // 退却中かどうか
+            blessingSelected: false, // 加護選択済みかどうか
+            weaponEvolutionAttempts: 0, // 武器進化試行回数（上限10）
+            dragonAttackThreshold: 12, // ドラゴンの攻撃閾値
+            dragonDamageBonus: 0, // ドラゴンのダメージボーナス
+        };
+
+        // ドラゴンの名前リスト
+        const dragonNames = [
+            'レッドドラゴン',
+            'ブルードラゴン',
+            'グリーンドラゴン',
+            'ブラックドラゴン',
+            'ゴールドドラゴン',
+            'ホワイトドラゴン'
+        ];
+
+        // 武器の強さ定義（攻撃力を半分に調整）
+        const weaponStrengths = {
+            1: 5,  // 木の棒
+            2: 10, // 鋼の剣
+            3: 15, // 魔法の剣
+            4: 25  // 伝説のドラゴンスレイヤー
+        };
+
+        // ページ管理
+        let currentPage = 0; // 初期ページをスタート画面に設定
+        const totalPages = 9; // ページ数を9に設定（スタッフロールと敗北ページを含む）
+
+        // 画像リソース
+        const pageImages = {
+            0: ['images/game_start.png'], // スタート画面
+            1: ['images/megami.png'], // キャラクター設定画面にmegami.pngを使用
+            2: ['images/opening_screen.png'], // オープニング画面
+            3: ['images/village_scene_1.png'], // 最初の街
+            4: ['images/hero_blacksmith_1.png'], // 鍛冶屋
+            5: ['images/weapon_acquisition.png'], // 武器獲得シーン
+            6: ['images/dragon_lair_1.png'], // ドラゴンの巣
+            7: ['images/ending_scene_1.png'], // エンディング
+            8: ['images/staff_role.png'], // スタッフロール
+            9: ['images/defeat_scene_1.png'] // 敗北
+        };
+
+        // オーディオ要素の取得
+        let bgm_opening, bgm_village, bgm_ending, bgm_boss, bgm_bad_ending;
+        let se_roll_dice, se_attack, se_victory, se_defeat;
+        let se_shock6, se_dragon_fire, se_sword_slash2, se_sword_swing1, se_battle_entry, se_dice, se_power_up;
+
+        function initializeAudioElements() {
+            bgm_opening = document.getElementById('bgm_opening');
+            bgm_village = document.getElementById('bgm_village');
+            bgm_ending = document.getElementById('bgm_ending');
+            bgm_boss = document.getElementById('bgm_boss'); // 戦闘BGM
+            bgm_bad_ending = document.getElementById('bgm_bad_ending'); // 悪いエンディングBGM
+
+            se_roll_dice = document.getElementById('se_roll_dice');
+            se_attack = document.getElementById('se_attack');
+            se_victory = document.getElementById('se_victory');
+            se_defeat = document.getElementById('se_defeat');
+            se_power_up = document.getElementById('se_power_up'); // power_up SEを取得
+
+            // 新しいSEの取得
+            se_shock6 = document.getElementById('se_shock6');
+            se_dragon_fire = document.getElementById('se_dragon_fire');
+            se_sword_slash2 = document.getElementById('se_sword_slash2');
+            se_sword_swing1 = document.getElementById('se_sword_swing1');
+            se_battle_entry = document.getElementById('se_battle_entry');
+            se_dice = document.getElementById('se_dice');
+
+            // 音量調整（必要に応じて変更）
+            if (bgm_opening) bgm_opening.volume = 0.5;
+            if (bgm_village) bgm_village.volume = 0.5;
+            if (bgm_boss) bgm_boss.volume = 0.5;
+            if (bgm_bad_ending) bgm_bad_ending.volume = 0.5;
+            if (bgm_ending) bgm_ending.volume = 0.5;
+
+            if (se_roll_dice) se_roll_dice.volume = 0.75;
+            if (se_attack) se_attack.volume = 0.75;
+            if (se_victory) se_victory.volume = 0.75;
+            if (se_defeat) se_defeat.volume = 0.75;
+            if (se_power_up) se_power_up.volume = 0.75;
+
+            if (se_shock6) se_shock6.volume = 0.75;
+            if (se_dragon_fire) se_dragon_fire.volume = 0.75;
+            if (se_sword_slash2) se_sword_slash2.volume = 0.75;
+            if (se_sword_swing1) se_sword_swing1.volume = 0.75;
+            if (se_battle_entry) se_battle_entry.volume = 0.75;
+            if (se_dice) se_dice.volume = 0.75;
+        }
+
+        // ミュート状態を管理するフラグ
+        let isMuted = false;
+        let currentBGM = null; // 現在再生中のBGMを追跡
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            // 全てのオーディオ要素のミュート状態を切り替える
+            if (bgm_opening && bgm_village && bgm_ending && bgm_boss && bgm_bad_ending) {
+                bgm_opening.muted = isMuted;
+                bgm_village.muted = isMuted;
+                bgm_ending.muted = isMuted;
+                bgm_boss.muted = isMuted;
+                bgm_bad_ending.muted = isMuted;
+            }
+            if (se_roll_dice && se_attack && se_victory && se_defeat &&
+                se_shock6 && se_dragon_fire && se_sword_slash2 &&
+                se_sword_swing1 && se_battle_entry && se_dice && se_power_up) {
+                se_roll_dice.muted = isMuted;
+                se_attack.muted = isMuted;
+                se_victory.muted = isMuted;
+                se_defeat.muted = isMuted;
+                se_shock6.muted = isMuted;
+                se_dragon_fire.muted = isMuted;
+                se_sword_slash2.muted = isMuted;
+                se_sword_swing1.muted = isMuted;
+                se_battle_entry.muted = isMuted;
+                se_dice.muted = isMuted;
+                se_power_up.muted = isMuted;
+            }
+
+            // ボタンのテキストを変更
+            document.getElementById('mute-button').textContent = isMuted ? 'ミュート解除' : 'ミュート';
+            console.log(`Mute toggled: ${isMuted ? 'Muted' : 'Unmuted'}`);
+        }
+
+        function playBGM(bgm) {
+            if (currentBGM === bgm) {
+                // 同じBGMが既に再生中の場合は何もしない
+                console.log(`BGM "${bgm.id}" is already playing.`);
+                return;
+            }
+
+            // 全てのBGMを停止
+            if (bgm_opening) {
+                bgm_opening.pause();
+                bgm_opening.currentTime = 0;
+            }
+            if (bgm_village) {
+                bgm_village.pause();
+                bgm_village.currentTime = 0;
+            }
+            if (bgm_boss) {
+                bgm_boss.pause();
+                bgm_boss.currentTime = 0;
+            }
+            if (bgm_bad_ending) {
+                bgm_bad_ending.pause();
+                bgm_bad_ending.currentTime = 0;
+            }
+            if (bgm_ending) {
+                bgm_ending.pause();
+                bgm_ending.currentTime = 0;
+            }
+
+            // 指定されたBGMを再生
+            if (bgm && !isMuted) {
+                bgm.play().then(() => {
+                    console.log(`BGM "${bgm.id}" started playing.`);
+                }).catch(error => {
+                    console.error(`Error playing BGM "${bgm.id}":`, error);
+                });
+                currentBGM = bgm;
+            } else {
+                console.log(`BGM "${bgm ? bgm.id : 'None'}" not played (Muted).`);
+                currentBGM = null;
+            }
+        }
+
+        function playSE(se) {
+            if (se && !isMuted) {
+                se.currentTime = 0; // 再生位置をリセット
+                se.play().then(() => {
+                    console.log(`SE "${se.id}" played.`);
+                }).catch(error => {
+                    console.error(`Error playing SE "${se.id}":`, error);
+                });
+            }
+        }
+
+        function rollDice() {
+            return Math.floor(Math.random() * 20) + 1;
+        }
+
+        function updatePage() {
+            console.log(`Updating to page: ${currentPage}`);
+            // 全ページを非表示にする
+            const allPages = document.querySelectorAll('.page');
+            allPages.forEach(page => page.classList.remove('active'));
+
+            // 現在のページを表示
+            const page = document.getElementById(`page-${currentPage}`);
+            if (page) {
+                page.classList.add('active');
+                setPageImage(currentPage);
+                if (currentPage !== 1 && currentPage !== 9 && currentPage !== 8) {
+                    const diceResultText = document.getElementById('dice-result-text');
+                    const diceResultImage = document.getElementById('dice-result-image');
+                    if (diceResultText) diceResultText.style.display = 'none';
+                    if (diceResultImage) diceResultImage.style.display = 'none';
+                }
+
+                // シーンに応じてBGMを再生
+                if (currentPage === 0) {
+                    // スタート画面ではBGMを再生しない
+                    console.log('Current page is Start. No BGM played.');
+                } else if (currentPage === 1) {
+                    // キャラクター設定画面でもBGMを再生
+                    playBGM(bgm_opening);
+                    console.log('Playing bgm_opening on Character Setup.');
+                } else if (currentPage === 2) {
+                    playBGM(bgm_opening);
+                } else if (currentPage === 3 || currentPage === 4 || currentPage === 5) {
+                    playBGM(bgm_opening); // オープニングBGMを継続
+                } else if (currentPage === 6) { // ドラゴン戦闘
+                    prepareDragonBattle();
+                } else if (currentPage === 7) { // エンディング
+                    showEnding();
+                } else if (currentPage === 8) { // スタッフロール
+                    playBGM(bgm_ending);
+                } else if (currentPage === 9) { // 敗北
+                    playSE(se_defeat);
+                }
+            } else {
+                console.error(`Page with id "page-${currentPage}" not found.`);
+            }
+
+            // 現在のページに対応するボタンを有効化・無効化
+            // 'always-enabled' クラスを持つボタンは無効化しない
+            const buttonElements = document.querySelectorAll(`#page-${currentPage} .button-container button:not(#turn-button):not(#retreat-button):not(#proceed-button):not(#weapon-challenge-button):not(.always-enabled)`);
+            buttonElements.forEach(button => {
+                if (currentPage === 8 || (currentPage === 7 && gameState.dragonHP > 0)) {
+                    button.disabled = true;
+                } else {
+                    button.disabled = false;
+                }
+                console.log(`Button "${button.textContent}" is now ${button.disabled ? 'disabled' : 'enabled'}.`);
+            });
+
+            updateStatus();
+
+            // ボタンのテキストを変更
+            const buttonElementsAll = document.querySelectorAll(`#page-${currentPage} .button-container button`);
+            buttonElementsAll.forEach(buttonElement => {
+                if (currentPage === 0) {
+                    buttonElement.textContent = 'スタート';
+                } else if (currentPage === 8) {
+                    buttonElement.textContent = 'トップに戻る';
+                } else if (currentPage === 7) {
+                    buttonElement.textContent = '次へ';
+                } else if (currentPage === 6) {
+                    buttonElement.textContent = buttonElement.id === 'turn-button' ? '攻撃' : '退却';
+                }
+                // 他のページではボタンのテキストをそのままに
+            });
+
+            // ボス戦ページで退却ボタンを表示
+            if (currentPage === 6) {
+                const retreatButton = document.getElementById('retreat-button');
+                if (retreatButton) retreatButton.style.display = 'block';
+            } else {
+                const retreatButton = document.getElementById('retreat-button');
+                if (retreatButton) retreatButton.style.display = 'none';
+            }
+
+            // 武器進化ページで武器進化ボタンを表示
+            if (currentPage === 5) {
+                const weaponChallengeButton = document.getElementById('weapon-challenge-button');
+                if (weaponChallengeButton) weaponChallengeButton.style.display = 'block';
+                updateWeaponEvolutionCriteria(); // 武器進化成功条件の更新
+            } else {
+                const weaponChallengeButton = document.getElementById('weapon-challenge-button');
+                if (weaponChallengeButton) weaponChallengeButton.style.display = 'none';
+            }
+
+            // 特定のページでボタンの状態を再設定
+            if (currentPage === 6) {
+                // ドラゴン戦闘ページでは攻撃ボタンを有効化
+                const turnButton = document.getElementById('turn-button');
+                const retreatButton = document.getElementById('retreat-button');
+                if (turnButton && retreatButton) {
+                    turnButton.disabled = false;
+                    retreatButton.disabled = false;
+                }
+            }
+        }
+
+        function setPageImage(pageNumber) {
+            const page = document.getElementById(`page-${pageNumber}`);
+            if (!page) {
+                console.error(`Page image not found for page: ${pageNumber}`);
+                return;
+            }
+            const imgElement = page.querySelector('img.centered-image');
+            if (imgElement) {
+                if (pageImages[pageNumber] && pageImages[pageNumber].length > 0) {
+                    const images = pageImages[pageNumber];
+                    imgElement.src = images[0];
+                    console.log(`Image for page ${pageNumber} set to ${images[0]}`);
+                }
+            }
+        }
+
+        function nextPage() {
+            if (currentPage < totalPages) {
+                if (currentPage === 0) {
+                    // スタート画面からキャラクター設定へ進む
+                    currentPage++;
+                    updatePage();
+                } else if (currentPage === 1) {
+                    // キャラクター設定画面からオープニングへ進む（加護選択後に「次へ」を押す）
+                    if (gameState.blessingSelected) { // 加護選択済みか確認
+                        currentPage++;
+                        updatePage();
+                    } else {
+                        alert('加護を1回選択してください。');
+                    }
+                } else if (currentPage === 2) {
+                    // オープニング画面から村へ進む
+                    currentPage++;
+                    updatePage();
+                } else if (currentPage === 3) {
+                    // 村から鍛冶屋へ進む
+                    currentPage++;
+                    updatePage();
+                } else if (currentPage === 4) {
+                    // 鍛冶屋から武器獲得シーンへ
+                    currentPage++;
+                    updatePage();
+                } else if (currentPage === 5) {
+                    // 武器獲得シーンからドラゴン戦闘へ
+                    currentPage++;
+                    updatePage();
+                } else if (currentPage === 6) {
+                    // ドラゴン戦闘からエンディングへ（戦闘が完了した後に自動的に進むため、ここでは何もしない）
+                } else if (currentPage === 7) {
+                    // エンディングからスタッフロールへ
+                    currentPage++;
+                    updatePage();
+                } else if (currentPage === 8) {
+                    // スタッフロールからトップに戻るへ
+                    resetGame();
+                }
+            }
+        }
+
+        function startGame() {
+            console.log('startGame called'); // デバッグログ追加
+            // ゲーム開始時にゲーム状態をリセット（プレイ回数は維持）
+            // 武器と加護はリセットしない
+            gameState.winRateModifier = 0;
+            gameState.playerHP = 100;
+            gameState.dragonHP = 150;
+            gameState.dragonName = getDragonName(); // ドラゴンの名前を設定
+            gameState.turnCount = 0;
+            gameState.isRetreating = false;
+            gameState.blessingSelected = false; // 加護選択フラグをリセット
+            gameState.weaponEvolutionAttempts = 0; // 武器進化試行回数をリセット
+            updateStatus();
+            // ページをキャラクター設定画面に遷移
+            currentPage = 1;
+            updatePage();
+        }
+
+        // ドラゴンの名前を取得する関数
+        function getDragonName() {
+            if (gameState.playthrough <= dragonNames.length) {
+                return dragonNames[gameState.playthrough - 1];
+            } else {
+                // 名前リストを超えた場合は最後の名前にプレフィックスを付与
+                return `${dragonNames[dragonNames.length - 1]}（${gameState.playthrough}週目）`;
+            }
+        }
+
+        // 祝福選択用のボタンハンドラー
+        function chooseBlessing(type) {
+            if (gameState.blessingSelected) {
+                alert('既に加護を1回選択済みです。');
+                return;
+            }
+
+            let changeAmount = 0;
+            let blessingName = "";
+            switch(type) {
+                case 'strength':
+                    changeAmount = 10 + (gameState.playthrough - 1) * 2; // 周回ごとに強化
+                    blessingName = "力の加護";
+                    break;
+                case 'wisdom':
+                    changeAmount = 5 + (gameState.playthrough - 1) * 1; // 周回ごとに強化
+                    blessingName = "賢さの加護";
+                    break;
+                case 'agility':
+                    changeAmount = 7 + (gameState.playthrough - 1) * 1.5; // 周回ごとに強化
+                    blessingName = "敏捷の加護";
+                    break;
+                default:
+                    console.warn(`Unknown blessing type: ${type}`);
+                    return;
+            }
+
+            // スタック効果の計算
+            const blessingCount = gameState.blessings[blessingName] || 0;
+            const stackBonus = blessingCount; // 同じ加護がn個なら +n
+
+            // 総効果
+            const totalChange = changeAmount + stackBonus;
+
+            // 勝率修正の更新
+            gameState.winRateModifier += totalChange;
+
+            // ターン数と加護カウントの更新
+            gameState.turnCount += 1; // 加護選択によるターン数増加
+            gameState.blessings[blessingName] = blessingCount + 1; // 加護をカウント
+            gameState.blessingSelected = true; // 加護選択済みフラグを設定
+
+            updateStatus();
+
+            const resultContainer = document.getElementById('character-result');
+            resultContainer.innerHTML += `<p>選択: ${blessingName} +${gameState.blessings[blessingName]} - 勝率修正が+${totalChange}%増加しました！</p>`;
+            console.log(`Blessing chosen: ${blessingName}, Total: ${gameState.blessings[blessingName]}`);
+
+            // 加護選択後、加護ボタンを無効化
+            const blessingButtons = document.querySelectorAll('.blessing-button');
+            blessingButtons.forEach(button => button.disabled = true);
+
+            // 「power_up.mp3」を再生
+            playSE(se_power_up);
+        }
+
+        // 「次へ」ボタンを押してキャラクター設定から次へ進む
+        function proceedFromBlessings() {
+            // ページ遷移
+            currentPage++;
+            updatePage();
+        }
+
+        function prepareDragonBattle() {
+            console.log('prepareDragonBattle called'); // デバッグログ追加
+            const battleLog = document.getElementById('battle-log-dragon');
+            if (!battleLog) {
+                console.error('Battle log for dragon not found.');
+                return;
+            }
+            // ドラゴン戦闘画面の説明文をテンプレートリテラルで正しく挿入
+            battleLog.innerHTML = `<p>勇者はついに${gameState.dragonName}の巣に到着しました。巨大な${gameState.dragonName}が彼を待ち受けています。勇者は${gameState.dragonName}との戦いに挑みます。</p><strong>${gameState.dragonName}との戦いが始まった！</strong><br>`;
+
+            // プレイ回数に応じてドラゴンのHPと攻撃閾値を調整
+            setDragonStats();
+
+            gameState.playerHP = 100;
+            updateStatus();
+
+            // 現在再生中のBGMを停止
+            if (bgm_opening) {
+                bgm_opening.pause();
+                bgm_opening.currentTime = 0;
+            }
+            if (bgm_village) {
+                bgm_village.pause();
+                bgm_village.currentTime = 0;
+            }
+            if (bgm_ending) {
+                bgm_ending.pause();
+                bgm_ending.currentTime = 0;
+            }
+            if (bgm_bad_ending) {
+                bgm_bad_ending.pause();
+                bgm_bad_ending.currentTime = 0;
+            }
+
+            // 戦闘開始時のSEを再生（battle_entry.mp3）
+            playSE(se_battle_entry);
+            console.log('se_battle_entry played'); // デバッグログ追加
+
+            // SEの再生が終了したら戦闘BGMを再生し、ターンボタンと退却ボタンを表示
+            se_battle_entry.addEventListener('ended', function() {
+                console.log('se_battle_entry ended'); // デバッグログ追加
+                playBGM(bgm_boss); // dragon_slayer_boss.mp3を再生
+                const turnButton = document.getElementById('turn-button');
+                const retreatButton = document.getElementById('retreat-button');
+                if (turnButton && retreatButton) {
+                    turnButton.style.display = 'block';
+                    retreatButton.style.display = 'block'; // 退却ボタンを表示
+                    console.log('bgm_boss played and turn-button displayed'); // デバッグログ追加
+                } else {
+                    console.error('Turn or Retreat button not found.');
+                }
+            }, { once: true }); // イベントリスナーを一度だけ実行
+
+            // フォールバック: イベントが発火しない場合のタイムアウトを設定
+            setTimeout(() => {
+                const turnButton = document.getElementById('turn-button');
+                const retreatButton = document.getElementById('retreat-button');
+                if (turnButton && retreatButton && turnButton.style.display !== 'block') {
+                    console.log('Timeout reached, displaying turn-button and playing bgm_boss'); // デバッグログ追加
+                    playBGM(bgm_boss); // dragon_slayer_boss.mp3を再生
+                    turnButton.style.display = 'block';
+                    retreatButton.style.display = 'block'; // 退却ボタンを表示
+                }
+            }, 3000); // 3秒後に実行
+        }
+
+        function setDragonStats() {
+            if (gameState.playthrough === 1) {
+                gameState.dragonHP = 150;
+                gameState.dragonAttackThreshold = 12;
+                gameState.dragonDamageBonus = 0;
+            } else if (gameState.playthrough === 2) {
+                gameState.dragonHP = 200;
+                gameState.dragonAttackThreshold = 13; // 命中率向上
+                gameState.dragonDamageBonus = 5;
+            } else if (gameState.playthrough === 3) {
+                gameState.dragonHP = 500;
+                gameState.dragonAttackThreshold = 17; // 命中率向上
+                gameState.dragonDamageBonus = 15;
+            } else if (gameState.playthrough >= 4) {
+                gameState.dragonHP = 5000;
+                gameState.dragonAttackThreshold = 18; // 高レベルドラゴンの命中率
+                gameState.dragonDamageBonus = 20;
+            }
+            console.log(`Dragon HP set to: ${gameState.dragonHP} for playthrough ${gameState.playthrough}`);
+        }
+
+        function nextTurn() {
+            const battleLog = document.getElementById('battle-log-dragon');
+            if (!battleLog) {
+                console.error('Battle log for dragon not found.');
+                return;
+            }
+            const turnButton = document.getElementById('turn-button');
+            const retreatButton = document.getElementById('retreat-button');
+
+            turnButton.disabled = true; // 連打防止
+            retreatButton.disabled = true; // 連打防止
+
+            setTimeout(() => {
+                gameState.turnCount++;
+                console.log('Turn:', gameState.turnCount); // デバッグログ追加
+
+                // 勇者またはドラゴンが倒れたか確認
+                if (gameState.playerHP <= 0 || gameState.dragonHP <= 0) {
+                    if (gameState.playerHP <= 0) {
+                        logBattleEvent('<strong>勇者は倒された... 敗北...</strong>');
+                        turnButton.style.display = 'none';
+                        retreatButton.style.display = 'none';
+                        currentPage = 9; // 敗北ページのページ番号に変更
+                        updatePage();
+                        // 勇者が敗北した場合のSEを再生（se_defeat.mp3）
+                        playSE(se_defeat);
+                        // 敗北時に戦闘BGMを停止
+                        if (bgm_boss) {
+                            bgm_boss.pause();
+                            bgm_boss.currentTime = 0;
+                        }
+                        if (bgm_bad_ending) {
+                            bgm_bad_ending.pause();
+                            bgm_bad_ending.currentTime = 0;
+                            // 敗北時の悪いエンディングBGMを再生
+                            playBGM(bgm_bad_ending);
+                        }
+                        console.log('Player defeated'); // デバッグログ追加
+                        return; // ここで処理を終了
+                    } else if (gameState.dragonHP <= 0) {
+                        logBattleEvent('<strong>ドラゴンを倒した！ 勝利！</strong>');
+                        turnButton.style.display = 'none';
+                        retreatButton.style.display = 'none';
+                        // 勝利後に自動でエンディングへ遷移
+                        // 勝利時のSEを2秒遅延で再生（dragon_fire.mp3のみ）
+                        setTimeout(() => {
+                            playSE(se_dragon_fire);
+                            console.log('se_dragon_fire played'); // デバッグログ追加
+                            // dragon_fire.mp3が終了したらエンディングBGMを再生し、エンディングページに遷移
+                            se_dragon_fire.addEventListener('ended', function() {
+                                console.log('se_dragon_fire ended'); // デバッグログ追加
+                                playBGM(bgm_ending);
+                                currentPage++;
+                                updatePage(); // 自動的にエンディングページに遷移
+                            }, { once: true }); // イベントリスナーを一度だけ実行
+                        }, 2000); // 2秒待ってからSEを再生
+                        console.log('Dragon defeated, transitioning to ending'); // デバッグログ追加
+                        return; // ここで処理を終了
+                    }
+                }
+
+                // プレイ回数に応じてボスの攻撃閾値とダメージを調整
+                let dragonAttackThreshold = gameState.dragonAttackThreshold;
+                let dragonDamageBonus = gameState.dragonDamageBonus;
+
+                const playerRoll = rollDice() + gameState.winRateModifier / 10;
+                const dragonRoll = rollDice();
+                console.log(`Player rolled: ${playerRoll}, Dragon rolled: ${dragonRoll}`); // デバッグログ追加
+
+                if (playerRoll >= 10) {
+                    // プレイヤーのダメージを武器の強さに応じて増加
+                    const weaponMultiplier = weaponStrengths[gameState.weaponStage] / 10; // 0.5, 1, 1.5, 2.5
+                    const baseDamage = Math.floor(Math.random() * 10) + 10; // 10-19
+                    const playerDamage = Math.floor(baseDamage * weaponMultiplier);
+                    gameState.dragonHP -= playerDamage;
+                    if (gameState.dragonHP < 0) gameState.dragonHP = 0;
+                    logBattleEvent(`勇者の攻撃がヒット！ ${gameState.dragonName}に<span style="color: red;">${playerDamage}ダメージ</span>！（${gameState.dragonName}のHP: ${gameState.dragonHP}）`);
+                    // 攻撃が当たった場合のSEを再生（sword_slash2.mp3）
+                    playSE(se_sword_slash2);
+                } else {
+                    logBattleEvent('<span style="color: orange;">勇者の攻撃は外れた...</span>');
+                    // 攻撃が外れた場合のSEを再生（sword_swing1.mp3）
+                    playSE(se_sword_swing1);
+                }
+
+                if (gameState.dragonHP > 0 && dragonRoll >= dragonAttackThreshold) {
+                    let dragonDamage = Math.floor(Math.random() * 10) + 5 + dragonDamageBonus;
+                    gameState.playerHP -= dragonDamage;
+                    if (gameState.playerHP < 0) gameState.playerHP = 0;
+                    logBattleEvent(`${gameState.dragonName}の攻撃がヒット！ 勇者に<span style="color: red;">${dragonDamage}ダメージ</span>！（勇者のHP: ${gameState.playerHP}）`);
+                    // ドラゴンの攻撃を受けた場合のSEを再生（dragon_fire.mp3）
+                    playSE(se_dragon_fire);
+                } else if (gameState.dragonHP > 0) {
+                    logBattleEvent('<span style="color: orange;">ドラゴンの攻撃を回避した...</span>');
+                    // ドラゴンの攻撃が外れた場合はSEを再生しない
+                }
+                updateStatus();
+                console.log('Turn completed'); // デバッグログ追加
+                turnButton.disabled = false; // ボタンを再度有効化
+                retreatButton.disabled = false; // ボタンを再度有効化
+            }, 1000); // 適切なタイムアウト時間を設定（例: 1秒）
+        }
+
+        function retreat() {
+            if (confirm("退却してHPを全回復しますか？5ターンを消費します。")) {
+                gameState.turnCount += 5; // 退却によるターン数増加
+                gameState.playerHP = 100; // HPを全回復
+                gameState.isRetreating = true; // 退却中フラグ
+                updateStatus();
+                logBattleEvent('<strong>勇者は退却し、HPを全回復しました。</strong>');
+                const battleLog = document.getElementById('battle-log-dragon');
+                if (battleLog) {
+                    battleLog.innerHTML += '<p><em>5ターンが消費されました。</em></p>';
+                } else {
+                    console.error('Battle log for dragon not found.');
+                }
+
+                // 退却後にターンボタンと退却ボタンを再表示
+                const turnButton = document.getElementById('turn-button');
+                const retreatButton = document.getElementById('retreat-button');
+                if (turnButton && retreatButton) {
+                    turnButton.disabled = false;
+                    retreatButton.disabled = false;
+                    console.log('Turn and Retreat buttons re-enabled after retreat.');
+                } else {
+                    console.error('Turn or Retreat button not found.');
+                }
+            }
+        }
+
+        function logBattleEvent(message) {
+            // battle-log-weapon: page-5, battle-log-dragon: page-6
+            let battleLog;
+            if (currentPage === 5) {
+                battleLog = document.getElementById('battle-log-weapon');
+            } else if (currentPage === 6) {
+                battleLog = document.getElementById('battle-log-dragon');
+            } else {
+                // 他のページではログを記録しない
+                console.warn('logBattleEvent called on a page without a battle log.');
+                return;
+            }
+
+            if (battleLog) {
+                const newMessage = document.createElement('p');
+                newMessage.innerHTML = message;
+                battleLog.appendChild(newMessage);
+                battleLog.scrollTop = battleLog.scrollHeight;
+                console.log(`Battle event logged: ${message}`);
+            } else {
+                console.error(`Battle log element not found for page ${currentPage}.`);
+            }
+        }
+
+        function updateStatus() {
+            const equipmentElement = document.getElementById('equipment-status');
+            const blessingsElement = document.getElementById('blessings-status'); // 新規追加
+            const winRateElement = document.getElementById('win-rate-status');
+            const playerHPElement = document.getElementById('player-hp-status');
+            const dragonHPElement = document.getElementById('dragon-hp-status');
+            const turnCountElement = document.getElementById('turn-count-status');
+            const playthroughElement = document.getElementById('playthrough-status'); // 既存の要素
+
+            // 武器名と強さを表示
+            equipmentElement.textContent = `現在の装備: ${getWeaponName()} (強さ: ${weaponStrengths[gameState.weaponStage]})`;
+
+            // 取得した加護を表示（タイプごとのカウント）
+            const blessingsArray = [];
+            for (const [key, value] of Object.entries(gameState.blessings)) {
+                blessingsArray.push(`${key} +${value}`);
+            }
+            blessingsElement.textContent = `取得した加護: ${blessingsArray.length > 0 ? blessingsArray.join(', ') : 'なし'}`;
+
+            winRateElement.textContent = `現在の勝率修正: ${gameState.winRateModifier}%`;
+            playerHPElement.textContent = `勇者のHP: ${gameState.playerHP}`;
+            dragonHPElement.textContent = `ドラゴンのHP: ${gameState.dragonHP}`;
+            turnCountElement.textContent = `累積ターン数: ${gameState.turnCount}`;
+            if (playthroughElement) {
+                // 1週目は表示しない
+                if (gameState.playthrough === 1) {
+                    playthroughElement.style.display = 'none';
+                } else {
+                    playthroughElement.style.display = 'block';
+                    playthroughElement.textContent = `プレイ回数: ${gameState.playthrough}週目`;
+                }
+            }
+
+            // HPバーの更新
+            updateHPBars();
+            console.log('Status updated.');
+        }
+
+        function getWeaponName() {
+            switch(gameState.weaponStage) {
+                case 1:
+                    return "木の棒";
+                case 2:
+                    return "鋼の剣";
+                case 3:
+                    return "魔法の剣";
+                case 4:
+                    return "伝説のドラゴンスレイヤー";
+                default:
+                    return "未知の武器";
+            }
+        }
+
+        function showEnding() {
+            const endingTurnCount = document.getElementById('ending-turn-count');
+            const titleElement = document.getElementById('ending-title');
+            const excellenceCriteria = document.getElementById('excellence-criteria'); // 新規追加
+            const playthroughElement = document.getElementById('playthrough-status'); // 既存の要素
+
+            if (endingTurnCount) {
+                endingTurnCount.textContent = gameState.turnCount;
+            }
+            if (titleElement) {
+                let title = "勇者";
+                if (gameState.turnCount <= 10) {
+                    title = "速攻の勇者";
+                } else if (gameState.turnCount <= 20) {
+                    title = "巧妙なる勇者";
+                } else {
+                    title = "粘り強い勇者";
+                }
+                titleElement.textContent = title;
+                console.log(`Ending title set to: ${title}`);
+            }
+            if (excellenceCriteria) {
+                let message = "";
+                if (gameState.turnCount <= 10) {
+                    message = "非常に優秀！";
+                } else if (gameState.turnCount <= 20) {
+                    message = "優秀！";
+                } else {
+                    message = "普通です。次はもっと良い結果を目指しましょう！";
+                }
+                excellenceCriteria.textContent = `あなたの累積ターン数は ${gameState.turnCount} ターンです。${message}`;
+                console.log(`Excellence criteria set: ${message}`);
+            }
+
+            // プレイ回数の表示
+            if (playthroughElement) {
+                // 1週目は表示しない
+                if (gameState.playthrough === 1) {
+                    playthroughElement.style.display = 'none';
+                } else {
+                    playthroughElement.style.display = 'block';
+                    playthroughElement.textContent = `プレイ回数: ${gameState.playthrough}週目`;
+                }
+            }
+
+            // ニューゲーム+のボーナス適用
+            applyPlaythroughBonus();
+
+            // ゲーム状態を更新
+            updateStatus();
+        }
+
+        function applyPlaythroughBonus() {
+            if (gameState.playthrough > 1) {
+                // 2週目以降のボーナス
+                const oldWinRateModifier = gameState.winRateModifier;
+
+                gameState.winRateModifier += 5; // 勝率修正に5加算
+
+                const winRateChange = gameState.winRateModifier - oldWinRateModifier;
+
+                logBattleEvent(`<strong>ニューゲーム+！ 勝率修正に${winRateChange >= 0 ? '+' : ''}${winRateChange}%のボーナスが適用されました。</strong>`);
+                updateStatus();
+                console.log(`Playthrough bonus applied: +${winRateChange}% win rate modifier.`);
+            }
+        }
+
+        function resetGame() {
+            console.log('resetGame called'); // デバッグログ追加
+            // 全てのBGMを停止
+            if (bgm_opening) {
+                bgm_opening.pause();
+                bgm_opening.currentTime = 0;
+            }
+            if (bgm_village) {
+                bgm_village.pause();
+                bgm_village.currentTime = 0;
+            }
+            if (bgm_boss) {
+                bgm_boss.pause();
+                bgm_boss.currentTime = 0;
+            }
+            if (bgm_bad_ending) {
+                bgm_bad_ending.pause();
+                bgm_bad_ending.currentTime = 0;
+            }
+            if (bgm_ending) {
+                bgm_ending.pause();
+                bgm_ending.currentTime = 0;
+            }
+
+            // SE音も停止
+            const allSEs = [se_roll_dice, se_attack, se_victory, se_defeat, se_shock6, se_dragon_fire, se_sword_slash2, se_sword_swing1, se_battle_entry, se_dice, se_power_up];
+            allSEs.forEach(se => {
+                if (se) {
+                    se.pause();
+                    se.currentTime = 0;
+                }
+            });
+
+            // ゲームの状態を初期化
+            currentPage = 0;
+            // 武器と加護はリセットしない
+            gameState.winRateModifier = 0;
+            gameState.playerHP = 100;
+            gameState.dragonHP = 150;
+            gameState.turnCount = 0; // ターン数を0にリセット
+            gameState.isRetreating = false;
+            gameState.blessingSelected = false; // 加護選択フラグをリセット
+            gameState.weaponEvolutionAttempts = 0; // 武器進化試行回数をリセット
+            // プレイ回数を増加
+            gameState.playthrough += 1;
+            // ドラゴンの名前とHPを設定
+            gameState.dragonName = getDragonName();
+            setDragonStats();
+            updateStatus();
+            updatePage();
+            console.log(`Game reset. Playthrough increased to ${gameState.playthrough}週目.`);
+        }
+
+        function showCredits() {
+            // 特に追加の処理が必要ない場合は、このままでOK
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeAudioElements();
+            updateStatus();
+            updatePage();
+        });
+
+        // 武器進化のサイコロチャレンジ
+        function weaponChallenge() {
+            const battleLog = document.getElementById('battle-log-weapon');
+            const weaponChallengeButton = document.getElementById('weapon-challenge-button');
+            if (!battleLog || !weaponChallengeButton) {
+                console.error('Weapon battle log or challenge button not found.');
+                return;
+            }
+            weaponChallengeButton.disabled = true; // ボタンを一時的に無効化
+            battleLog.innerHTML += '<p>武器の進化を試みています...</p>';
+            playSE(se_dice); // ダイスチャレンジのSEを再生
+            console.log('Weapon evolution challenge started.');
+
+            // ダイスロールの結果を待つために短いタイムアウトを設定
+            setTimeout(() => {
+                const roll = rollDice();
+                battleLog.innerHTML += `<p>ダイスの結果: ${roll}</p>`;
+                console.log(`Weapon challenge roll: ${roll}`);
+                gameState.turnCount += 1; // 武器進化チャレンジによるターン数増加
+                gameState.weaponEvolutionAttempts += 1; // 進化試行回数を増加
+
+                const requiredRoll = getWeaponEvolutionRequiredRoll(); // 現在の武器進化の必要条件を取得
+
+                if (roll >= requiredRoll && gameState.weaponStage < 4) { // 進化成功の閾値を動的に設定
+                    const oldWinRateModifier = gameState.winRateModifier;
+                    gameState.weaponStage += 1;
+                    // 武器進化に応じて勝率修正を増加
+                    let bonus = 0;
+                    switch(gameState.weaponStage) {
+                        case 2:
+                            bonus = 2.5 + (gameState.playthrough - 1) * 1; // 周回ごとに強化
+                            break;
+                        case 3:
+                            bonus = 5 + (gameState.playthrough - 1) * 1; // 周回ごとに強化
+                            break;
+                        case 4:
+                            bonus = 10 + (gameState.playthrough - 1) * 2; // 周回ごとに強化
+                            break;
+                        default:
+                            break;
+                    }
+                    gameState.winRateModifier += bonus;
+                    battleLog.innerHTML += `<p>武器が進化しました！ 現在の武器: ${getWeaponName()} (強さ: ${weaponStrengths[gameState.weaponStage]}) (+${bonus}% 勝率修正)</p>`;
+                    playSE(se_victory); // 進化成功のSEを再生
+                    playSE(se_power_up); // power_up SEを再生
+                    console.log(`Weapon evolved to stage ${gameState.weaponStage}: ${getWeaponName()} with +${bonus}% win rate modifier`);
+                } else if (roll < requiredRoll && gameState.weaponStage < 4) { // 進化失敗
+                    battleLog.innerHTML += `<p>武器の進化に失敗しました。もう一度挑戦してください。</p>`;
+                    playSE(se_defeat); // 進化失敗のSEを再生
+                    console.log('Weapon evolution failed.');
+                } else if (gameState.weaponStage >= 4) { // 既に最高段階
+                    battleLog.innerHTML += `<p>武器は既に最高段階に進化しています。</p>`;
+                    console.log('Weapon is already at the highest stage.');
+                }
+
+                updateStatus();
+
+                // 武器進化試行回数が10を超えたら自動的にドラゴン戦闘へ移行
+                if (gameState.weaponEvolutionAttempts >= 10 && gameState.weaponStage < 4) {
+                    battleLog.innerHTML += `<p>武器進化の試行回数が10回に達しました。自動的にドラゴン戦闘に移行します。</p>`;
+                    console.log('Weapon evolution attempts reached 10. Transitioning to dragon battle.');
+                    // 自動的にドラゴン戦闘ページへ遷移
+                    currentPage = 6;
+                    updatePage();
+                } else {
+                    weaponChallengeButton.disabled = false; // ボタンを再度有効化
+                }
+            }, 2000); // 2秒後に結果を表示
+        }
+
+        // 武器進化の必要条件を取得する関数
+        function getWeaponEvolutionRequiredRoll() {
+            switch(gameState.weaponStage) {
+                case 1:
+                    return 12;
+                case 2:
+                    return 14;
+                case 3:
+                    return 16;
+                default:
+                    return 20; // 進化不可
+            }
+        }
+
+        // 武器進化チャレンジ画面の成功基準説明文の更新
+        function updateWeaponEvolutionCriteria() {
+            const successCriteria = document.getElementById('success-criteria');
+            const requiredRoll = getWeaponEvolutionRequiredRoll();
+            if (successCriteria) {
+                successCriteria.innerHTML = `<strong>成功基準:</strong> ダイスの目 + 勝率修正 ≥ <strong>${requiredRoll}</strong>で成功`;
+                console.log(`Success criteria updated to: ${requiredRoll}`);
+            }
+        }
+
+        // HPバーの更新
+        function updateHPBars() {
+            const playerHPBar = document.getElementById('player-hp-bar');
+            const dragonHPBar = document.getElementById('dragon-hp-bar');
+
+            // 勇者のHPバー
+            if (playerHPBar) {
+                const playerMaxHP = 100;
+                const playerHPPercentage = (gameState.playerHP / playerMaxHP) * 100;
+                playerHPBar.style.width = `${playerHPPercentage}%`;
+                playerHPBar.textContent = `${gameState.playerHP} / ${playerMaxHP}`;
+            }
+
+            // ドラゴンのHPバー
+            if (dragonHPBar) {
+                let dragonMaxHP = 150;
+                if (gameState.playthrough === 2) {
+                    dragonMaxHP = 200;
+                } else if (gameState.playthrough === 3) {
+                    dragonMaxHP = 500;
+                } else if (gameState.playthrough >= 4) {
+                    dragonMaxHP = 5000;
+                }
+                const dragonHPPercentage = (gameState.dragonHP / dragonMaxHP) * 100;
+                dragonHPBar.style.width = `${dragonHPPercentage}%`;
+                dragonHPBar.textContent = `${gameState.dragonHP} / ${dragonMaxHP}`;
+            }
+            console.log('HP bars updated.');
+        }
+    </script>
+</head>
+<body>
+    <div id="version-number">修正版 4.5</div>
+    <div id="status-container">
+        <p id="equipment-status">現在の装備: 木の棒 (強さ: 5)</p>
+        <p id="blessings-status">取得した加護: なし</p> <!-- 追加 -->
+        <p id="win-rate-status">現在の勝率修正: 0%</p>
+        <p id="player-hp-status">勇者のHP: 100</p>
+        <div class="hp-bar-container">
+            <div class="hp-bar" id="player-hp-bar">100 / 100</div>
+        </div>
+        <p id="dragon-hp-status">ドラゴンのHP: 150</p>
+        <div class="hp-bar-container">
+            <div class="hp-bar dragon" id="dragon-hp-bar">150 / 150</div>
+        </div>
+        <p id="turn-count-status">累積ターン数: 0</p>
+        <p id="playthrough-status" style="display: none;">プレイ回数: 1週目</p> <!-- 追加 -->
+    </div>
+    
+    <div id="story-container">
+        <!-- ページ0: スタート画面 -->
+        <div class="page active" id="page-0">
+            <img src="images/game_start.png" alt="スタート画面" class="centered-image"> <!-- 画像をimages/game_start.pngに変更 -->
+            <div class="button-container">
+                <button onclick="startGame()">スタート</button>
+            </div>
+        </div>
+
+        <!-- ページ1: キャラクター設定画面 -->
+        <div class="page" id="page-1">
+            <img src="images/megami.png" alt="キャラクター設定画面" class="centered-image"> <!-- megami.pngを使用 -->
+            <p>キャラクター設定のために加護を選んでください。選択は1週につき1回のみです。選択するたびに累積ターン数が増加し、勝率修正が上昇します。</p>
+            <div class="button-container">
+                <button class="blessing-button" onclick="chooseBlessing('strength')">力の加護 (+10勝率修正)</button>
+                <button class="blessing-button" onclick="chooseBlessing('wisdom')">賢さの加護 (+5勝率修正)</button>
+                <button class="blessing-button" onclick="chooseBlessing('agility')">敏捷の加護 (+7勝率修正)</button>
+            </div>
+            <div class="button-container">
+                <button id="proceed-button" onclick="proceedFromBlessings()">次へ</button>
+            </div>
+            <div id="character-result"></div>
+        </div>
+
+        <!-- ページ2: オープニング画面 -->
+        <div class="page" id="page-2">
+            <img src="images/opening_screen.png" alt="オープニング画面" class="centered-image">
+            <p><strong>あらすじ:</strong></p>
+            <p>古の時代、平和な村に突如として現れたドラゴンが村を脅かしています。勇者として選ばれたあなたは、村を救うためドラゴンを討伐する旅に出ます。</p>
+            <p id="opening-description">
+                <strong>ゲームの説明:</strong><br>
+                このゲームでは、勇者としてドラゴンを倒すまでのターン数を競います。少ないターン数でクリアすることを目指してください。運と戦略が鍵となります。
+            </p>
+            <div class="button-container">
+                <button onclick="nextPage()">次へ</button>
+            </div>
+        </div>
+
+        <!-- ページ3: 最初の街 -->
+        <div class="page" id="page-3">
+            <img src="images/village_scene_1.png" alt="村の風景" class="centered-image">
+            <p>勇者は小さな村に到着しました。村人たちは、最近現れたドラゴンの話をしていました。勇者は村を守るため、ドラゴンを倒す決意を固めます。</p>
+            <div class="button-container">
+                <button onclick="nextPage()">次へ</button>
+            </div>
+        </div>
+
+        <!-- ページ4: 鍛冶屋 -->
+        <div class="page" id="page-4">
+            <img src="images/hero_blacksmith_1.png" alt="鍛冶屋で剣を手に入れる勇者" class="centered-image">
+            <p>勇者はドラゴンに立ち向かうために、鍛冶屋で新しい剣を手に入れました。鋼の剣はドラゴンに対抗するための重要な武器です。装備を強化し、村の外れにあるドラゴンの巣へ向かいます。</p>
+            <div class="button-container">
+                <button onclick="nextPage()">次へ</button>
+            </div>
+        </div>
+
+        <!-- ページ5: 武器獲得シーン -->
+        <div class="page" id="page-5">
+            <img src="images/weapon_acquisition.png" alt="鋼の剣を手に入れた勇者" class="centered-image">
+            <p>鍛冶屋で鋼の剣を手に入れた勇者は、装備を強化し、ドラゴンとの戦いに備えました。新たな装備は勇者の勝率修正を高め、戦闘を有利に進めることができます。</p>
+            <div class="button-container">
+                <button onclick="nextPage()">次へ</button>
+                <button id="weapon-challenge-button" class="weapon-evolution-button" onclick="weaponChallenge()">武器の進化に挑戦</button> <!-- 武器進化ボタン追加 -->
+            </div>
+            <div id="battle-log-weapon"></div> <!-- 武器進化時のログ表示用 -->
+            <div id="success-criteria"><strong>成功基準:</strong> ダイスの目 + 勝率修正 ≥ <strong>12</strong>で成功</div> <!-- 成功基準の説明を追加 -->
+        </div>
+
+        <!-- ページ6: ドラゴンの巣 -->
+        <div class="page" id="page-6">
+            <img src="images/dragon_lair_1.png" alt="ドラゴンの巣に到着した勇者" class="centered-image">
+            <p id="dragon-battle-intro"></p> <!-- テンプレートリテラルをJavaScriptで設定 -->
+            <strong id="dragon-battle-start"></strong><br> <!-- テンプレートリテラルをJavaScriptで設定 -->
+            <div id="success-criteria"><strong>成功基準:</strong> ダイスの目 + 勝率修正 ≥ <strong>10</strong>で成功</div>
+            <div id="battle-log-dragon"></div>
+            <button id="turn-button" onclick="nextTurn()">攻撃</button> <!-- ボタンテキストを「攻撃」に変更 -->
+            <button id="retreat-button" onclick="retreat()">退却</button> <!-- 退却ボタン追加 -->
+        </div>
+
+        <!-- ページ7: エンディング -->
+        <div class="page" id="page-7">
+            <h2 id="ending-title">勇者</h2>
+            <img src="images/ending_scene_1.png" alt="エンディング" class="centered-image">
+            <p id="ending-story"></p> <!-- ドラゴン名をJavaScriptで設定 -->
+            <p>これにより、勇者の冒険はひとまず終わりを迎えました。しかし、彼の伝説は語り継がれ、次なる冒険への序章となることでしょう。</p>
+            <p>累積ターン数: <span id="ending-turn-count">0</span></p>
+            <p id="excellence-criteria"></p> <!-- 優秀なターン数の目安 -->
+            <p id="playthrough-status" style="display: none;">プレイ回数: 1週目</p> <!-- プレイ回数の表示 -->
+            <div class="button-container">
+                <button onclick="nextPage()">次へ</button>
+            </div>
+        </div>
+
+        <!-- ページ8: スタッフロール（クレジット） -->
+        <div class="page" id="page-8">
+            <img src="images/staff_role.png" alt="スタッフロール背景" class="centered-image"> <!-- 画像をimages/staff_role.pngに変更 -->
+            <div id="credits-container">
+                <div id="credits-content">
+                    <ul id="credits-list">
+                        <li><strong>プロデューサー:</strong> Nobuaki Oshiro</li>
+                        <li><strong>サウンド:</strong> Suno3.5</li>
+                        <li><strong>アートワーク:</strong> DALLE</li>
+                        <li><strong>プログラミング:</strong> ChatGPT</li>
+                        <li><strong>テストプレイ:</strong> ゲーム愛好家たち</li>
+                        <li><strong>特別感謝:</strong> 全てのプレイヤー</li>
+                        <li><strong>制作:</strong> 生成AIをフル活用して作成</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="button-container">
+                <button class="always-enabled" onclick="resetGame()">トップに戻る</button> <!-- クラス追加 -->
+            </div>
+        </div>
+
+        <!-- ページ9: 敗北 -->
+        <div class="page" id="page-9">
+            <img src="images/defeat_scene_1.png" alt="敗北" class="centered-image">
+            <p id="defeat-message"></p> <!-- テンプレートリテラルをJavaScriptで設定 -->
+            <div class="button-container">
+                <button onclick="resetGame()">再挑戦</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="button-container">
+        <button id="mute-button" onclick="toggleMute()">ミュート</button>
+    </div>
+    <div id="dice-animation">ダイスを振っています...</div>
+    <p id="dice-result-text"></p>
+    <img id="dice-result-image" src="" alt="" class="centered-image" style="width:50%; height:auto; display:none;">
+
+    <!-- オーディオ要素の追加 -->
+    <!-- オープニングBGM -->
+    <audio id="bgm_opening" src="audio/dragon_slayer.mp3" loop preload="auto"></audio>
+    <!-- 戦闘BGM -->
+    <audio id="bgm_boss" src="audio/dragon_slayer_boss.mp3" loop preload="auto"></audio>
+    <!-- 悪いエンディングBGM -->
+    <audio id="bgm_bad_ending" src="audio/dragon_slayer_bad_ending.mp3" loop preload="auto"></audio>
+    <!-- エンディングBGM -->
+    <audio id="bgm_ending" src="audio/dragon_slayer_ending.mp3" loop preload="auto"></audio>
+    <!-- 他のBGM -->
+    <audio id="bgm_village" src="audio/bgm_village.mp3" loop preload="auto"></audio>
+    <!-- SE -->
+    <audio id="se_roll_dice" src="audio/se_roll_dice.mp3" preload="auto"></audio>
+    <audio id="se_attack" src="audio/se_attack.mp3" preload="auto"></audio>
+    <audio id="se_victory" src="audio/se_victory.mp3" preload="auto"></audio>
+    <audio id="se_defeat" src="audio/down_se.mp3" preload="auto"></audio> <!-- 敗北時のSEを se_defeat に統一 -->
+    <!-- 新しいSEの追加 -->
+    <audio id="se_shock6" src="audio/shock6.mp3" preload="auto"></audio>
+    <audio id="se_dragon_fire" src="audio/dragon_fire.mp3" preload="auto"></audio>
+    <audio id="se_sword_slash2" src="audio/sword_slash2.mp3" preload="auto"></audio>
+    <audio id="se_sword_swing1" src="audio/sword_swing1.mp3" preload="auto"></audio>
+    <audio id="se_battle_entry" src="audio/battle_entry.mp3" preload="auto"></audio>
+    <audio id="se_dice" src="audio/dice.mp3" preload="auto"></audio>
+    <audio id="se_power_up" src="audio/power_up.mp3" preload="auto"></audio> <!-- power_up SEを追加 -->
+</body>
+</html>
